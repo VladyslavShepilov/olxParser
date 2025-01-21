@@ -1,17 +1,24 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from models import Base
 
-DATABASE_URL = "postgresql+psycopg2://username:password@localhost/mydatabase"
+import os
+import dotenv
+
+dotenv.load_dotenv()
+db_user = os.getenv('DB_USER')
+db_password = os.getenv('DB_PASSWORD')
+db_host = os.getenv('DB_HOST')
+db_name = os.getenv('DB_NAME')
+
+DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}"
 
 engine = create_engine(DATABASE_URL)
 
 Session = sessionmaker(bind=engine)
 
-# Function to create a new session
 def get_session():
     return Session()
 
-# Function to create the tables
 def create_tables():
-    from models import Base  # Import Base from your models
     Base.metadata.create_all(engine)

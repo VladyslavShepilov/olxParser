@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine, Column, Integer, BigInteger, String, Text, DateTime, Enum
-from sqlalchemy.orm import declarative_base
-
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
@@ -8,6 +7,7 @@ class OlxItem(Base):
     __tablename__ = 'olx_items'
 
     id = Column(BigInteger, primary_key=True, unique=True)
+    olx_id = Column(BigInteger)
     views = Column(Integer)
     title = Column(String(255))
     price = Column(String(255))
