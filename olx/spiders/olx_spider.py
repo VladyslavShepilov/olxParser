@@ -18,6 +18,9 @@ class OlxSpider(scrapy.Spider):
             book_link = card.css(OLXSelectors.LINK).get()
 
             if book_link:
+                # Ensure the URL contains "uk" before the domain
+                if "uk" not in book_link:
+                    book_link = book_link.replace("https://www.olx.ua", "https://www.olx.ua/uk")
                 yield response.follow(book_link, callback=self.parse_item)
 
     def parse_item(self, response):
@@ -25,8 +28,8 @@ class OlxSpider(scrapy.Spider):
         print(f"Current page: {page_name}")
         
         item = {
-            "id": response.css(OLXSelectors.ID).get(),
-            "views": response.css(OLXSelectors.VIEWS).get(),
+            "id": response.xpath(OLXSelectors.ID_X).get(),
+            "views": response.xpath(OLXSelectors.VIEWS_X).get(),
             "title": response.css(OLXSelectors.TITLE).get(),
             "price": response.css(OLXSelectors.PRICE).get(),
             "published_at": response.css(OLXSelectors.PUBLISHED_AT).get(),
@@ -35,10 +38,15 @@ class OlxSpider(scrapy.Spider):
             "tags": response.css(OLXSelectors.TAGS).getall(),
         }
 
+        self.logger.info(f"ID value is {item["id"]}")
+
         try:
             listing_item = OlxItem(**item)
         except ValueError as e:
             self.logger.error(f"Failed to process item due to validation error: {e}")
             return
 
+        self.logger.info(f"Parsed item with {listing_item}")
+
         yield listing_item
+
