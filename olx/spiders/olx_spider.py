@@ -28,7 +28,7 @@ class OlxSpider(scrapy.Spider):
         print(f"Current page: {page_name}")
         
         item = {
-            "id": response.xpath(OLXSelectors.ID_X).get(),
+            "olx_id": response.xpath(OLXSelectors.ID_X).get(),
             "views": response.xpath(OLXSelectors.VIEWS_X).get(),
             "title": response.css(OLXSelectors.TITLE).get(),
             "price": response.css(OLXSelectors.PRICE).get(),
@@ -37,9 +37,6 @@ class OlxSpider(scrapy.Spider):
             "images": response.css(OLXSelectors.IMG_SRC).getall(),
             "tags": response.css(OLXSelectors.TAGS).getall(),
         }
-
-        self.logger.info(f"ID value is {item["id"]}")
-
         try:
             listing_item = OlxItem(**item)
         except ValueError as e:

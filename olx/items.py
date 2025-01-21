@@ -5,7 +5,7 @@ import locale
 
 @dataclass
 class OlxItem:
-    id: int
+    olx_id: int
     views: int
     title: str
     price: str
@@ -15,8 +15,8 @@ class OlxItem:
     tags: Optional[str] = field(default=None)
 
     def __post_init__(self):
-        if isinstance(self.id, str):
-            self.id = self._extract_integer(self.id, "id")
+        if isinstance(self.olx_id, str):
+            self.olx_id = self._extract_integer(self.olx_id, "olx_id")
         
         if isinstance(self.views, str):
             self.views = self._extract_integer(self.views, "views")
