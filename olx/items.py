@@ -1,53 +1,60 @@
-from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+import re
 import locale
 
-@dataclass
-class OlxItem:
-    olx_id: int
-    views: int
-    title: str
-    price: str
-    published_at: str
-    description: Optional[str] = field(default=None)
-    images: Optional[str] = field(default=None)
-    tags: Optional[str] = field(default=None)
 
-    def __post_init__(self):
-        if isinstance(self.olx_id, str):
-            self.olx_id = self._extract_integer(self.olx_id, "olx_id")
-        
-        if isinstance(self.views, str):
-            self.views = self._extract_integer(self.views, "views")
-        
+class OlxItem(BaseModel):
+    olx_id: int = Field(..., description="Unique identifier for the OLX item")
+    views: Optional[int] = Field(default=0, description="Number of views for the OLX item")
+    title: str = Field(..., description="Title of the OLX item")
+    price: str = Field(..., description="Price of the OLX item")
+    published_at: str = Field(..., description="Publication date in Ukrainian")
+    description: Optional[str] = Field(default=None, description="Description of the OLX item")
+    images: Optional[List[str]] = Field(default=None, description="List of image URLs for the OLX item")
+    tags: Optional[List[str]] = Field(default=None, description="List of tags for the OLX item")
+
+    @field_validator("olx_id", "views", mode="before")
+    def validate_integer_fields(cls, value, info):
+        """Validate and extract integers from string input."""
+        if value is None:
+            return 0  # Default for None
+        if isinstance(value, str):
+            try:
+                return int("".join(filter(str.isdigit, value)))
+            except ValueError:
+                raise ValueError(f"Invalid integer value for {info.field_name}: {value}")
+        return value
+
+    @field_validator("published_at", mode="before")
+    def validate_and_parse_date(cls, value):
+        """Parse Ukrainian publication date strings into a standardized format."""
         try:
-            parsed_date = self.parse_ukrainian_date(self.published_at)
-            self.published_at = parsed_date.strftime("%Y-%m-%d %H:%M:%S")
+            parsed_date = cls.parse_ukrainian_date(value)
+            return parsed_date.strftime("%Y-%m-%d %H:%M:%S")
         except ValueError as e:
-            raise ValueError(f"Invalid publication date format: {self.published_at}") from e
-
-    @staticmethod
-    def _extract_integer(value: str, field_name: str) -> int:
-        try:
-            return int("".join(filter(str.isdigit, value)))
-        except ValueError:
-            raise ValueError(f"Invalid integer value for {field_name}: {value}")
+            raise ValueError(f"Invalid publication date format: {value}") from e
 
     @staticmethod
     def parse_ukrainian_date(date_str: str) -> datetime:
+        """Parse a Ukrainian date string into a datetime object."""
         try:
+            # Set the locale to Ukrainian to handle Ukrainian month names
             locale_code = "uk_UA.UTF-8"
             locale.setlocale(locale.LC_TIME, locale_code)
-            
+
+            # Handle special case for "Сьогодні"
             if "Сьогодні" in date_str:
                 time_str = date_str.split("в")[-1].strip()
                 today = datetime.now()
                 hour, minute = map(int, time_str.split(":"))
                 return today.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            
-            cleaned_date = date_str.replace(" г.", "").strip()
+
+            # Remove trailing "г." or "р." if present
+            cleaned_date = re.sub(r'\s*(г\.|р\.)\s*$', '', date_str).strip()
+
+            # Try to parse the cleaned date string
             return datetime.strptime(cleaned_date, "%d %B %Y")
-        
-        except (ValueError, locale.Error):
-            raise ValueError(f"Invalid date string: {date_str}")
+        except (ValueError, locale.Error) as e:
+            raise ValueError(f"Invalid date string: {date_str}") from e
