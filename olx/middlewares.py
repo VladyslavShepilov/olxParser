@@ -55,8 +55,8 @@ class OlxDownloaderMiddleware:
                 break
             last_height = new_height
 
-    def __del__(self):
-        if hasattr(self, 'driver'):
+    def close_driver(self):
+        if self.driver:
             self.driver.quit()
 
     def spider_opened(self, spider):
