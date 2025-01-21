@@ -13,7 +13,7 @@ class DatabasePipeline:
         self.session = get_session()
 
     def process_item(self, item, spider):
-        existing_item = self.session.query(OlxItem).filter(OlxItem.url == item['olx_od']).first()
+        existing_item = self.session.query(OlxItem).filter(OlxItem.url == item['olx_id']).first()
         
         if not existing_item:
             # Add new item if no duplicates
