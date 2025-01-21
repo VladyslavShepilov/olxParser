@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import time
 
 
@@ -23,25 +24,33 @@ class OlxDownloaderMiddleware:
 
 
     def process_request(self, request, spider):
-        # Scroll and wait only 'list' pages
-        if not request.url.startswith("https://www.olx.ua/uk/list/?page="):
-            return None
-
         spider.logger.info(f"Loading content of: {request.url}")
         self.driver.get(request.url)
-
-        self.scroll_to_bottom()
+        
+        if not request.url.startswith("https://www.olx.ua/uk/list/?page="):
+            self.scroll_once()
+            WebDriverWait(self.driver, 10).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+        else:
+            self.scroll_to_bottom()
 
         page_source = self.driver.page_source
-
         return HtmlResponse(url=request.url, body=page_source, encoding="utf-8", request=request)
+    
+
+    def scroll_once(self):
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+    def get_current_doc_height(self):
+        return self.driver.execute_script("return document.body.scrollHeight")
 
     def scroll_to_bottom(self):
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            self.scroll_once()
+            time.sleep(1)
+            new_height = self.get_current_doc_height()
             if new_height == last_height:
                 break
             last_height = new_height
