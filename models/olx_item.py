@@ -1,10 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, BigInteger, String, Text, DateTime, Enum
+from sqlalchemy import (BigInteger, Column, DateTime, Enum, Integer, String,
+                        Text, create_engine)
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+
 class OlxItem(Base):
-    __tablename__ = 'olx_items'
+    __tablename__ = "olx_items"
 
     id = Column(BigInteger, primary_key=True, unique=True)
     olx_id = Column(BigInteger)
@@ -15,7 +17,6 @@ class OlxItem(Base):
     description = Column(Text, nullable=True)
     images = Column(Text, nullable=True)
     tags = Column(Text, nullable=True)
-    lang = Column(Enum('uk', 'ru', name='lang_enum'), default='uk')
 
     def __repr__(self):
         return f"<OlxItem(id={self.id}, title={self.title})>"

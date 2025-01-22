@@ -1,5 +1,7 @@
-from loguru import logger
 import logging
+
+from loguru import logger
+
 
 class InterceptHandler(logging.Handler):
     def emit(self, record):
@@ -9,6 +11,7 @@ class InterceptHandler(logging.Handler):
             level = record.levelno
 
         logger.log(level, record.getMessage())
+
 
 def setup_logging():
     logger.remove()  # Remove default Loguru handler

@@ -1,10 +1,11 @@
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from models.olx_item import Base
-from dotenv import load_dotenv
-from alembic import context
 import os
+from logging.config import fileConfig
+
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
+from models.olx_item import Base
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -25,14 +26,15 @@ target_metadata = Base.metadata
 
 
 # Get the environment variables
-db_user = os.getenv('DB_USER')
-db_password = os.getenv('DB_PASSWORD')
-db_host = os.getenv('DB_HOST')
-db_name = os.getenv('DB_NAME')
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_name = os.getenv("DB_NAME")
 
 sqlalchemy_url = f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}"
 
-config.set_main_option('sqlalchemy.url', sqlalchemy_url)
+config.set_main_option("sqlalchemy.url", sqlalchemy_url)
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -72,9 +74,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
