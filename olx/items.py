@@ -1,60 +1,78 @@
-from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
-import re
 import locale
+import re
+from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
-class OlxItem(BaseModel):
+class ItemValidator(BaseModel):
     olx_id: int = Field(..., description="Unique identifier for the OLX item")
-    views: Optional[int] = Field(default=0, description="Number of views for the OLX item")
+    views: Optional[int] = Field(
+        default=0, description="Number of views for the OLX item"
+    )
     title: str = Field(..., description="Title of the OLX item")
     price: str = Field(..., description="Price of the OLX item")
-    published_at: str = Field(..., description="Publication date in Ukrainian")
-    description: Optional[str] = Field(default=None, description="Description of the OLX item")
-    images: Optional[List[str]] = Field(default=None, description="List of image URLs for the OLX item")
-    tags: Optional[List[str]] = Field(default=None, description="List of tags for the OLX item")
+    published_at: datetime = Field(..., description="Publication date in Ukrainian")
+    description: Optional[str] = Field(
+        default=None, description="Description of the OLX item"
+    )
+    images: Optional[List[str]] = Field(
+        default=None, description="List of image URLs for the OLX item"
+    )
+    tags: Optional[List[str]] = Field(
+        default=None, description="List of tags for the OLX item"
+    )
 
     @field_validator("olx_id", "views", mode="before")
     def validate_integer_fields(cls, value, info):
-        """Validate and extract integers from string input."""
+        """Extract the last numeric part of a string input."""
         if value is None:
-            return 0  # Default for None
+            return 0
         if isinstance(value, str):
             try:
-                return int("".join(filter(str.isdigit, value)))
-            except ValueError:
-                raise ValueError(f"Invalid integer value for {info.field_name}: {value}")
+                # Split the string by spaces and take the last part
+                last_part = value.split()[-1]
+                return int(last_part)
+            except (ValueError, IndexError):
+                raise ValueError(
+                    f"Invalid integer value for {info.field_name}: {value}"
+                )
         return value
 
     @field_validator("published_at", mode="before")
-    def validate_and_parse_date(cls, value):
-        """Parse Ukrainian publication date strings into a standardized format."""
+    def validate_published_at(cls, value):
+        """Parse and validate the date string with manual month mapping."""
         try:
-            parsed_date = cls.parse_ukrainian_date(value)
-            return parsed_date.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError as e:
-            raise ValueError(f"Invalid publication date format: {value}") from e
-
-    @staticmethod
-    def parse_ukrainian_date(date_str: str) -> datetime:
-        """Parse a Ukrainian date string into a datetime object."""
-        try:
-            # Set the locale to Ukrainian to handle Ukrainian month names
-            locale_code = "uk_UA.UTF-8"
-            locale.setlocale(locale.LC_TIME, locale_code)
-
-            # Handle special case for "Сьогодні"
-            if "Сьогодні" in date_str:
-                time_str = date_str.split("в")[-1].strip()
+            if "Сьогодні" in value or "Сегодня" in value:
+                time_str = value.split("в")[-1].strip()
                 today = datetime.now()
                 hour, minute = map(int, time_str.split(":"))
                 return today.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-            # Remove trailing "г." or "р." if present
-            cleaned_date = re.sub(r'\s*(г\.|р\.)\s*$', '', date_str).strip()
+            # Manual mapping of month names to numbers
+            month_mapping = {
+                # Ukr
+                "Січень": 1, "Лютий": 2, "Березень": 3, "Квітень": 4,
+                "Травень": 5, "Червень": 6, "Липень": 7, "Серпень": 8,
+                "Вересень": 9, "Жовтень": 10, "Листопад": 11, "Грудень": 12,
+                # Rus
+                "Январь": 1, "Февраль": 2, "Март": 3, "Апрель": 4,
+                "Май": 5, "Июнь": 6, "Июль": 7, "Август": 8,
+                "Сентябрь": 9, "Октябрь": 10, "Ноябрь": 11, "Декабрь": 12,
+            }
 
-            # Try to parse the cleaned date string
-            return datetime.strptime(cleaned_date, "%d %B %Y")
-        except (ValueError, locale.Error) as e:
-            raise ValueError(f"Invalid date string: {date_str}") from e
+            # Extract the day, month name, and year
+            parts = value.split()
+            day = int(parts[0])
+            month_name = parts[1]
+            year = int(parts[2]) if len(parts) > 2 else datetime.now().year
+
+            # Get the month number from the mapping
+            month = month_mapping.get(month_name)
+            if not month:
+                raise ValueError(f"Unknown month name: {month_name}")
+
+            return datetime(year, month, day)
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Invalid date format: {e}") from e
