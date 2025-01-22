@@ -50,7 +50,6 @@ class ItemValidator(BaseModel):
                 hour, minute = map(int, time_str.split(":"))
                 return today.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-            # Manual mapping of month names to numbers
             month_mapping = {
                 # Ukr
                 "Січень": 1, "Лютий": 2, "Березень": 3, "Квітень": 4,
@@ -62,7 +61,6 @@ class ItemValidator(BaseModel):
                 "Сентябрь": 9, "Октябрь": 10, "Ноябрь": 11, "Декабрь": 12,
             }
 
-            # Extract the day, month name, and year
             parts = value.split()
             day = int(parts[0])
             month_name = parts[1]
