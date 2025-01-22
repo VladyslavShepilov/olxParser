@@ -28,6 +28,10 @@ services:
     volumes:
       - .:/app
     restart: always
+    command: >
+      bash -c "
+      alembic upgrade head &&
+      python main.py"
 
   backup:
     build:
