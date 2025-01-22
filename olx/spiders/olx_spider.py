@@ -1,12 +1,14 @@
 import scrapy
+from scrapy.exceptions import CloseSpider
+
 from olx.selectors import OLXSelectors
-from olx.items import OlxItem
+
 
 class OlxSpider(scrapy.Spider):
     name = "olx_spider"
 
-    base_url = "https://www.olx.ua/uk/list/?page=" 
-    page_limit = 1
+    base_url = "https://www.olx.ua/uk/list/?page="
+    page_limit = 5
 
     def start_requests(self):
         for page in range(1, self.page_limit + 1):
@@ -18,15 +20,12 @@ class OlxSpider(scrapy.Spider):
             book_link = card.css(OLXSelectors.LINK).get()
 
             if book_link:
-                # Ensure the URL contains "uk" before the domain
-                if "uk" not in book_link:
-                    book_link = book_link.replace("https://www.olx.ua", "https://www.olx.ua/uk")
                 yield response.follow(book_link, callback=self.parse_item)
 
     def parse_item(self, response):
-        page_name = response.url.split("/")[-1]
-        print(f"Current page: {page_name}")
-        
+        page_name = response.url
+        self.logger.info(f"Processing page: {page_name}")
+
         item = {
             "olx_id": response.xpath(OLXSelectors.ID_X).get(),
             "views": response.xpath(OLXSelectors.VIEWS_X).get(),
@@ -37,13 +36,6 @@ class OlxSpider(scrapy.Spider):
             "images": response.css(OLXSelectors.IMG_SRC).getall(),
             "tags": response.css(OLXSelectors.TAGS).getall(),
         }
-        try:
-            listing_item = OlxItem(**item)
-        except ValueError as e:
-            self.logger.error(f"Failed to process item due to validation error: {e}")
-            return
+        self.logger.info(f"Item is {item}")
 
-        self.logger.info(f"Parsed item with {listing_item}")
-
-        yield listing_item
-
+        yield item
